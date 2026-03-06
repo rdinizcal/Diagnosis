@@ -1,5 +1,5 @@
 """
-ga-hls package.
+diagnosis package.
 """
 
 __all__ = []

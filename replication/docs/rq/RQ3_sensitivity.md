@@ -12,7 +12,7 @@ This page documents:
 
 ## Artifacts and provenance (RQ3)
 
-**Scope.** RQ3 is evaluated via a **sensitivity study** consisting of multiple `ga-hls` runs across:
+**Scope.** RQ3 is evaluated via a **sensitivity study** consisting of multiple `diagnosis` runs across:
 - subjects (AT53_AT119, RR, phi2, phi3, phi4),
 - configuration variants (e.g., B/G/G2/G3/O*), and
 - multiple random seeds.

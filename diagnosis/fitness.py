@@ -1,4 +1,4 @@
-# ga-hls/fitness.py
+# diagnosis/fitness.py
 
 from __future__ import annotations
 

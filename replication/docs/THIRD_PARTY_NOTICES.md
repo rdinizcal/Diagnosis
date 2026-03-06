@@ -1,4 +1,4 @@
-# Third-party notices (ga-hls)
+# Third-party notices (diagnosis)
 
 This repository is MIT-licensed (see `LICENSE`). The Docker image used for replication downloads third-party components at build time.
 

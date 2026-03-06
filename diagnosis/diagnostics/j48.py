@@ -1,4 +1,4 @@
-# ga-hls/diagnostics/j48.py
+# diagnosis/diagnostics/j48.py
 
 from __future__ import annotations
 
@@ -84,7 +84,7 @@ def run_j48(
     # Determine a safe number of CV folds
     num_instances = _count_instances_in_arff(arff_path)
     if num_instances == 0:
-        print(f"[ga-hls] J48: ARFF {arff_path} has 0 instances; skipping.")
+        print(f"[diagnosis] J48: ARFF {arff_path} has 0 instances; skipping.")
         # Optionally write an empty .out explaining this
         out_path = out_dir_path / f"J48-data-{int(qty * 100)}.out"
         with out_path.open("w", encoding="utf-8") as f:
@@ -130,8 +130,8 @@ def run_j48(
 
         return str(out_path)
     except Exception as exc:
-        print(f"[ga-hls] Weka J48 failed: {exc}")
+        print(f"[diagnosis] Weka J48 failed: {exc}")
         with out_path.open("w", encoding="utf-8") as f:
-            f.write(f"[ga-hls] Weka J48 failed: {type(exc).__name__}: {exc}\n")
+            f.write(f"[diagnosis] Weka J48 failed: {type(exc).__name__}: {exc}\n")
         return str(out_path)
 

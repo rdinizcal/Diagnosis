@@ -42,19 +42,19 @@ RUN echo '#!/usr/bin/env bash\n' \
     chmod +x /usr/local/bin/weka-j48
 
 # ---- App setup ----
-WORKDIR /opt/ga-hls
+WORKDIR /opt/diagnosis
 
 # Copy the repo into the container
-COPY . /opt/ga-hls
+COPY . /opt/diagnosis
 
-# Install ga-hls and its Python deps
+# Install diagnosis and its Python deps
 RUN python3 -m pip install --no-cache-dir --upgrade pip && \
     python3 -m pip install --no-cache-dir -e .
 
 # Default outputs dir (can be overridden via env)
-ENV GA_HLS_OUTPUT_DIR=/opt/ga-hls/outputs
-RUN mkdir -p "${GA_HLS_OUTPUT_DIR}"
+ENV DIAGNOSIS_OUTPUT_DIR=/opt/diagnosis/outputs
+RUN mkdir -p "${DIAGNOSIS_OUTPUT_DIR}"
 
 # ---- Entrypoint ----
-ENTRYPOINT ["ga-hls"]
+ENTRYPOINT ["diagnosis"]
 CMD ["--help"]

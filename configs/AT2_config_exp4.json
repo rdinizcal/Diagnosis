@@ -1,7 +1,7 @@
 {
   "input": {
-    "requirement_file": "ga-hls/examples/AT2_AT015.py",
-    "traces_file": "ga-hls/tracesAT.csv",
+    "requirement_file": "diagnosis/examples/AT2_AT015.py",
+    "traces_file": "diagnosis/tracesAT.csv",
     "output_dir": "outputs"
   },
   "ga": {
@@ -9,7 +9,8 @@
     "generations": 10,
     "crossover_rate": 0.95,
     "mutation_rate": 0.10,
-    "seed": 42
+    "seed": 42,
+    "target_sats": 10
   },
   "mutation": {
     "max_mutations": 3,

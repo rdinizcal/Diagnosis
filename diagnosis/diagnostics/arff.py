@@ -1,4 +1,4 @@
-# ga-hls/diagnostics/arff.py
+# diagnosis/diagnostics/arff.py
 
 from __future__ import annotations
 
@@ -332,7 +332,7 @@ def write_dataset_all( path: str, now, seed, population, seed_ch, unknown, unsat
     try:
         chstr = population[0].arrf_str()
     except Exception as e:
-        print(f"[ga-hls][dataset_all] population[0].arrf_str() failed: {e!r}")
+        print(f"[diagnosis][dataset_all] population[0].arrf_str() failed: {e!r}")
         chstr = str(seed_ch)
 
     chstr_norm = _normalize_row_str(chstr)

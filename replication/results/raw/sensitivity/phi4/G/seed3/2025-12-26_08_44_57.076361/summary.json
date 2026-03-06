@@ -170,7 +170,7 @@
     }
   ],
   "max_generations": 10,
-  "output_dir": "/opt/ga-hls/scripts/test3/outputs/sensitivity/phi4/G/seed3",
+  "output_dir": "/opt/diagnosis/scripts/test3/outputs/sensitivity/phi4/G/seed3",
   "population_size": 250,
   "requirement_file": "scripts/test3/configs/property_trace/property_phi4_normal.py",
   "requirement_sha256": "28315c4f7e894a9d681cedb80647ad96616d196c331931fe7d07aa32526cf7ff",

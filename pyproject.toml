@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ga-hls"
+name = "diagnosis"
 version = "1.0.0"
 description = "Genetic algorithm-based HLS requirement mutation and diagnostics"
 readme = "README.md"
@@ -19,19 +19,17 @@ dependencies = [
   "numpy",
   "matplotlib",
   "scipy",
-  "z3-solver",
+  "z3-solver==4.15.4.0",
   "tqdm"
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/Gastd/ga-hls"
+"Homepage" = "https://github.com/rdinizcal/Diagnosis"
 
 [project.scripts]
-ga-hls = "ga_hls.cli:main"
+diagnosis = "diagnosis.cli:main"
 
 [tool.setuptools]
-packages = ["ga_hls", "ga_hls.lang"]
-
-
+packages = ["diagnosis", "diagnosis.lang", "diagnosis.mutation", "diagnosis.diagnostics"]
 [tool.setuptools.package-dir]
-ga_hls = "ga-hls"
+diagnosis = "diagnosis"

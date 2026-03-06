@@ -170,7 +170,7 @@
     }
   ],
   "max_generations": 10,
-  "output_dir": "/opt/ga-hls/scripts/test3/outputs/sensitivity/AT53_AT119/G/seed3",
+  "output_dir": "/opt/diagnosis/scripts/test3/outputs/sensitivity/AT53_AT119/G/seed3",
   "population_size": 250,
   "requirement_file": "scripts/test3/configs/property_trace/property_AT53_AT119.py",
   "requirement_sha256": "7f1fafc8e7b5648c3a7e55cf05b836d42b11b4d0921238ce566622d5412e1034",

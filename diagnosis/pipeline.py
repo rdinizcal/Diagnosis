@@ -80,7 +80,7 @@ def build_ga_from_config(cfg: Config) -> GA:
 
 def run_diagnostics(cfg: Config) -> None:
     """
-    High-level orchestration for ga-hls:
+    High-level orchestration for diagnosis:
 
         1. Ensure the configured output root directory exists.
         2. Build GA from the config via the Stage-4 loader, wiring GAConfig,

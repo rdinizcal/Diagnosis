@@ -133,7 +133,7 @@ class GA(object):
             self.seed_ast = parse_internal_obj(self.init_form)
         except Exception as exc:
             # Do not break GA if the AST view fails; just log and continue
-            print(f"[ga-hls] Warning: failed to build seed AST: {exc}")
+            print(f"[diagnosis] Warning: failed to build seed AST: {exc}")
             self.seed_ast = None
 
         self.target_sats = int(target_sats)
@@ -159,7 +159,7 @@ class GA(object):
             with open(f'{self.path}/hypot.txt', 'a') as f:
                 f.write(f'\t{self.base_property_script}\n')
         else:
-            print('[ga-hls] WARNING: no property script copied (property_path not set?)')
+            print('[diagnosis] WARNING: no property script copied (property_path not set?)')
 
         self.formula_layout = formula_layout
 
@@ -277,7 +277,7 @@ class GA(object):
                 for line in infile:
                     outfile.write(line)
         except FileNotFoundError as exc:
-            print(f"[ga-hls] WARNING: could not copy property script {src}: {exc}")
+            print(f"[diagnosis] WARNING: could not copy property script {src}: {exc}")
             return ""
 
         return str(dst)
@@ -538,7 +538,7 @@ class GA(object):
         """
         src = self.property_path or self.base_property_script
         if not src:
-            raise RuntimeError("[ga-hls] save_file: no property_path/base_property_script set")
+            raise RuntimeError("[diagnosis] save_file: no property_path/base_property_script set")
 
         dst = f"{self.path}/temp.py"
 

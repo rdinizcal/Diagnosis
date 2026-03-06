@@ -170,7 +170,7 @@
     }
   ],
   "max_generations": 10,
-  "output_dir": "/opt/ga-hls/outputs/sensitivity/phi2/G/seed1",
+  "output_dir": "/opt/diagnosis/outputs/sensitivity/phi2/G/seed1",
   "population_size": 250,
   "requirement_file": "configs/sensitivity/property_trace/property_phi2_cutin.py",
   "requirement_sha256": "7bcce829c3fa62ba8ed427013d5f4ebbb96ba437e37b390d21351d7333c2fbb3",

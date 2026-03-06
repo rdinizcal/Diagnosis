@@ -1,11 +1,11 @@
 cff-version: 1.2.0
-message: "If you use ga-hls in your research, please cite the accompanying paper (preferred) and/or this software."
+message: "If you use Diagnosis in your research, please cite the accompanying paper (preferred) and/or this software."
 type: software
-title: "ga-hls"
+title: "Diagnosis"
 abstract: "Research tool for diagnosing falsified requirements in HLS/ThEodorE-based workflows using search-based mutation and decision-tree learning."
-url: "https://github.com/Gastd/ga-hls"
+url: "https://github.com/rdinizcal/Diagnosis"
 license: "MIT"
-repository-code: "https://github.com/Gastd/ga-hls"
+repository-code: "https://github.com/rdinizcal/Diagnosis"
 keywords:
   - requirements diagnosis
   - search-based software engineering
@@ -33,7 +33,7 @@ authors:
 
 preferred-citation:
   type: article
-  title: "Search-based Trace Diagnostic"
+  title: "Search-based Trace Diagnostic for Cyber-Physical Systems"
   authors:
     - family-names: "Caldas"
       given-names: "Ricardo"

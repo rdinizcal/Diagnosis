@@ -1,7 +1,7 @@
 # How to reproduce the evaluation results
 
 This document explains how to:
-1) rerun `ga-hls` for the **main evaluation experiments (Exp1–Exp34)**,
+1) rerun `diagnosis` for the **main evaluation experiments (Exp1–Exp34)**,
 2) rerun the **analysis scripts** for RQ1/RQ2 (precision/recall, timing stats, boxplot),
 3) rerun the **sensitivity study** (RQ3).
 
@@ -13,17 +13,17 @@ This document explains how to:
 
 ## 0) Environment setup
 
-### Docker (recommended to run ga-hls)
+### Docker (recommended to run diagnosis)
 From the repository root:
 
 ```bash
 docker compose -f docker/docker-compose.yml build
-docker compose -f docker/docker-compose.yml run --rm ga-hls --help
+docker compose -f docker/docker-compose.yml run --rm diagnosis --help
 ```
 
 ---
 
-## 1) Re-running ga-hls for the main experiments (Exp1–Exp34)
+## 1) Re-running diagnosis for the main experiments (Exp1–Exp34)
 
 Inputs for the main experiments are under:
 
@@ -39,7 +39,7 @@ Each requirement folder contains:
 Example (AT1 / exp1):
 
 ```bash
-docker compose -f docker/docker-compose.yml run --rm ga-hls \
+docker compose -f docker/docker-compose.yml run --rm diagnosis \
   run --config replication/evaluation_inputs/effectiveness/AT1/exp1.json
 ```
 
@@ -120,7 +120,7 @@ Each scenario folder contains multiple configs (e.g., `*_B.json`, `*_G.json`, `*
 Example:
 
 ```bash
-docker compose -f docker/docker-compose.yml run --rm ga-hls \
+docker compose -f docker/docker-compose.yml run --rm diagnosis \
   run --config replication/evaluation_inputs/sensitivity/phi3/phi3_B.json
 ```
 

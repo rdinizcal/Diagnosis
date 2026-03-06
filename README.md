@@ -1,6 +1,5 @@
-# ga-hls
-
-`ga-hls` is a research tool for **diagnosing falsified requirements** in HLS/ThEodorE-based workflows using **search-based mutation** and **decision-tree learning**.
+# Diagnosis
+`diagnosis` is a research tool for **diagnosing falsified requirements** in HLS/ThEodorE-based workflows using **search-based mutation** and **decision-tree learning**.
 
 Given:
 
@@ -8,7 +7,7 @@ Given:
 - a set of **execution traces** (encoded as Z3 constraints),
 - and a configuration describing how formulas may **mutate**,
 
-`ga-hls`:
+`diagnosis`:
 
 1. Parses the requirement into a **typed AST**.
 2. Uses a **genetic algorithm (GA)** over structured mutations of that AST.
@@ -37,10 +36,10 @@ Start here:
 
 ---
 
-## Package layout (`ga-hls`)
+## Package layout (`diagnosis`)
 
 ```text
-ga-hls/
+diagnosis/
 ├── cli.py                   # CLI: run, explain-positions, inspect-internal, ...
 ├── config.py                # JSON config -> dataclasses
 ├── pipeline.py              # Unified pipeline: property → AST → GA → ARFF → J48
@@ -79,7 +78,7 @@ ga-hls/
 
 All of this orchestrated through:
 ```
-ga-hls run --config <file.json>
+diagnosis run --config <file.json>
 ```
 
 ---
@@ -98,8 +97,8 @@ docker compose build
 
 Check CLI availability:
 ```
-docker compose run --rm ga-hls --help
-docker compose run --rm ga-hls --version
+docker compose run --rm diagnosis --help
+docker compose run --rm diagnosis --version
 ```
 
 If you do not want to use the docker installation, you'll need:
@@ -114,7 +113,7 @@ python -m pip install -e .
 
 Simply use the tool via:
 ```
-ga-hls --help
+diagnosis --help
 ```
 
 ---
@@ -123,12 +122,12 @@ ga-hls --help
 
 Basic command help:
 ```
-docker compose run --rm ga-hls --help
+docker compose run --rm diagnosis --help
 ```
 
 Full pipeline (AT1 example):
 ```
-docker compose run --rm  ga-hls run --config ga-hls/configs/AT1_config_exp1.json
+docker compose run --rm  diagnosis run --config configs/AT1_config_exp1.json
 ```
 
 This performs:
@@ -168,8 +167,8 @@ Example:
 ```json
 {
   "input": {
-    "requirement_file": "ga-hls/examples/AT1_AT001.py",   // ThEodorE-generated Python requirement
-    "traces_file": "ga-hls/tracesAT.csv",                // Execution traces encoded for Z3
+    "requirement_file": "diagnosis/examples/AT1_AT001.py",   // ThEodorE-generated Python requirement
+    "traces_file": "diagnosis/tracesAT.csv",                // Execution traces encoded for Z3
     "output_dir": "outputs"                              // Directory for ARFF + decision trees + logs
   },
 
@@ -220,7 +219,7 @@ Example:
 
 To see where every mutation position sits in the requirement:
 ```
-docker compose run --rm  ga-hls explain-positions --config configs/AT1_config_exp1.json
+docker compose run --rm  diagnosis explain-positions --config configs/AT1_config_exp1.json
 ```
 
 Example:
@@ -245,7 +244,7 @@ Pos  NodeType            Node                                      Features
 
 To inspect a single mutation slot:
 ```
-docker compose run --rm  ga-hls explain-position --config configs/AT1_config_exp1.json --position 12
+docker compose run --rm  diagnosis explain-position --config configs/AT1_config_exp1.json --position 12
 ```
 
 ---

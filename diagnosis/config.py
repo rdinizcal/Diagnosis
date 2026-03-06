@@ -59,7 +59,7 @@ class MutationConfig:
 @dataclass
 class Config:
     """
-    Top-level configuration object for a ga-hls run.
+    Top-level configuration object for a diagnosis run.
     """
 
     input: InputConfig = field(default_factory=InputConfig)

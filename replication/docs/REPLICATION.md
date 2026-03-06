@@ -1,4 +1,4 @@
-# Replication package (ga-hls)
+# Replication package (diagnosis)
 
 This repository accompanies the paper and contains the material needed to inspect the reported results and, where feasible, reproduce the analyses.
 
@@ -7,7 +7,7 @@ This repository accompanies the paper and contains the material needed to inspec
 All replication artifacts are stored under the `replication/` directory:
 
 - `replication/evaluation_inputs/`  
-  Inputs to run `ga-hls` (properties, trace encodings, and configs).
+  Inputs to run `diagnosis` (properties, trace encodings, and configs).
   - `replication/evaluation_inputs/effectiveness/`: inputs for the **main evaluation runs** (Exp1–Exp34)
   - `replication/evaluation_inputs/sensitivity/`: inputs for the **sensitivity runs** (RQ3)
 
@@ -16,7 +16,7 @@ All replication artifacts are stored under the `replication/` directory:
 
 - `replication/results/`  
   Collected run artifacts and derived summaries:
-  - `replication/results/raw/` raw outputs from `ga-hls` runs
+  - `replication/results/raw/` raw outputs from `diagnosis` runs
     - `replication/results/raw/exp1` … `exp34`: **main evaluation runs** (paper Exp IDs)
     - `replication/results/raw/sensitivity/…`: **sensitivity runs** (subject × variant × seed)
   - `replication/results/trees/`: extracted decision-tree artifacts (e.g., tool-rendered PNGs, Weka outputs)
@@ -40,7 +40,7 @@ docker compose -f docker/docker-compose.yml build
 
 Check CLI:
 ```bash
-docker compose -f docker/docker-compose.yml run --rm ga-hls --help
+docker compose -f docker/docker-compose.yml run --rm diagnosis --help
 ```
 
 ## Results overview
@@ -62,4 +62,4 @@ docker compose -f docker/docker-compose.yml run --rm ga-hls --help
 
 ## Reproducing results
 
-See `docs/REPRODUCE.md` for step-by-step commands to rerun ga-hls and the analysis scripts.
+See `docs/REPRODUCE.md` for step-by-step commands to rerun diagnosis and the analysis scripts.

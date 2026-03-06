@@ -122,7 +122,7 @@ def mutate_formula(
         candidate_indices = all_indices
 
     if not candidate_indices:
-        print("[ga-hls][warning] mutate formula: no candidate indices, returning unchanged")
+        print("[diagnosis][warning] mutate formula: no candidate indices, returning unchanged")
         return formula
 
     # Choose positions to mutate (without replacement)
@@ -270,7 +270,7 @@ def _mutate_node(node: Formula, cfg: MutationConfig, rng: random.Random, idx: in
                 lo_i, hi_i = hi_i, lo_i
             new_val = rng.randint(lo_i, hi_i)
             # print(
-            #     f"[ga-hls][mutate] numeric at id={idx}, old={node.value}, "
+            #     f"[diagnosis][mutate] numeric at id={idx}, old={node.value}, "
             #     f"new={new_val}, bounds=({lo_i}, {hi_i})"
             # )
             return IntConst(value=new_val)
@@ -278,7 +278,7 @@ def _mutate_node(node: Formula, cfg: MutationConfig, rng: random.Random, idx: in
         else:  # RealConst
             new_val = rng.uniform(lo, hi)
             # print(
-            #     f"[ga-hls][mutate] numeric at id={idx}, old={node.value}, "
+            #     f"[diagnosis][mutate] numeric at id={idx}, old={node.value}, "
             #     f"new={new_val:.6f}, bounds=({lo:.3f}, {hi:.3f})"
             # )
             return RealConst(value=new_val)

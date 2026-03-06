@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# Root of the installed ga-hls package
+# Root of the installed diagnosis package
 _PACKAGE_ROOT = Path(__file__).resolve().parent
 
 CROSSOVER_RATE = 0.95 ## Rate defined by Núnez-Letamendia

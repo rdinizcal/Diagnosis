@@ -17,7 +17,7 @@ from .ga import GA
 
 def _get_version() -> str:
     try:
-        return version("ga-hls")
+        return version("diagnosis")
     except PackageNotFoundError:
         # Fallback when running from source without an installed dist
         return "1.0.0"
@@ -50,7 +50,7 @@ def _cmd_explain_positions(args: argparse.Namespace) -> int:
     relop_idxs = [i for i in sorted_idxs if positions[i].role == "RELATION_OP"]
 
     # For each relational operator, find its first numeric child and first term child
-    from ga_hls.lang.ast import IntConst, RealConst, Var, Subscript, FuncCall  # local import
+    from diagnosis.lang.ast import IntConst, RealConst, Var, Subscript, FuncCall  # local import
 
     relop_slots: list[dict[str, int | None]] = []
     for r_idx in relop_idxs:
@@ -153,7 +153,7 @@ def _cmd_explain_position(args: argparse.Namespace) -> int:
     logical_idxs = [i for i in sorted_idxs if positions[i].role == "LOGICAL_CONNECTIVE"]
     relop_idxs = [i for i in sorted_idxs if positions[i].role == "RELATION_OP"]
 
-    from ga_hls.lang.ast import IntConst, RealConst, Var, Subscript, FuncCall, RelOp as RelOpNode
+    from diagnosis.lang.ast import IntConst, RealConst, Var, Subscript, FuncCall, RelOp as RelOpNode
 
     # Relational slots as in explain-positions
     relop_slots: list[dict[str, int | None]] = []
@@ -343,7 +343,7 @@ def _cmd_inspect_internal(args: argparse.Namespace) -> int:
     Inspect an internal JSON list-of-lists formula and print basic AST info.
 
     Usage:
-        ga-hls inspect-internal --file path/to/formula.json
+        diagnosis inspect-internal --file path/to/formula.json
     """
     path = Path(args.file)
     try:
@@ -406,20 +406,20 @@ def _cmd_inspect_theodore(args) -> int:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="ga-hls",
-        description="ga-hls: GA-based mutation and diagnostics for HLS/ThEodorE requirements.",
+        prog="diagnosis",
+        description="diagnosis: GA-based mutation and diagnostics for HLS/ThEodorE requirements.",
     )
     parser.add_argument(
         "--version",
         action="store_true",
-        help="Print the installed ga-hls version and exit.",
+        help="Print the installed diagnosis version and exit.",
     )
 
     subparsers = parser.add_subparsers(dest="command")
 
     run_parser = subparsers.add_parser(
         "run",
-        help="Run ga-hls using a JSON config file (currently: load & summarize).",
+        help="Run diagnosis using a JSON config file (currently: load & summarize).",
     )
     run_parser.add_argument(
         "--config",
@@ -488,7 +488,7 @@ def main(argv=None) -> int:
         try:
             cfg = load_config(args.config)
         except ConfigError as e:
-            print(f"[ga-hls] Error loading config: {e}")
+            print(f"[diagnosis] Error loading config: {e}")
             return 1
 
         run_diagnostics(cfg)
