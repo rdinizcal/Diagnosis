@@ -177,7 +177,8 @@ Example:
     "generations": 10,           // Number of evolution iterations
     "crossover_rate": 0.95,      // Probability of combining two parents
     "mutation_rate": 0.10,       // Probability of mutating an individual
-    "seed": 42                   // Random seed for reproducibility
+    "seed": 42,                  // Random seed for reproducibility
+    "target_sats": 10            // Target number of formaulas to be satisfied and unsatisfied (stop criterion)
   },
 
   "mutation": {
