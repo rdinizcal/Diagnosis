@@ -30038,7 +30038,7 @@ def CC4():
 	interval_t2=And(t1<=t2, t2<=t1+30000000)
 
 	interval_t3=And(t2<=t3, t3<=t2+5000000)
-	conditions_t3=((y5[ToInt(RealVal(0)+(t3-0.0)/10000.0)])-(y4[ToInt(RealVal(0)+(t3-0.0)/10000.0)]))>8
+	conditions_t3=((y5[ToInt(RealVal(0)+(t3-0.0)/10000.0)])-(y4[ToInt(RealVal(0)+(t3-0.0)/10000.0)]))>8.0
 	conditions_t2=ForAll([t3], Implies(interval_t3, conditions_t3))
 	conditions_t1=Exists([t2], And(interval_t2, conditions_t2))
 	z3solver.add(Not(ForAll([t1], Implies(interval_t1, conditions_t1))))

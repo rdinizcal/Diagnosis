@@ -10029,7 +10029,7 @@ def AT53():
 
 
 
-	interval_i=And(i>=0.0, i<30000000)
+	interval_i=And(i>=0.0, i<3000)
 
 	interval_t2=And(timestamps[i]<=t2, t2<=timestamps[i]+(2500000))
 	conditions_t2=gear[ToInt(RealVal(0)+(t2-0.0)/10000.0)]==3

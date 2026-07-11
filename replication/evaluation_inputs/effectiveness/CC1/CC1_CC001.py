@@ -30032,7 +30032,7 @@ def CC1():
 
 
 	interval_t=And(0<=t, t<=100000000)
-	conditions_t=((y5[ToInt(RealVal(0)+(t-0.0)/10000.0)])-(y4[ToInt(RealVal(0)+(t-0.0)/10000.0)]))<=40
+	conditions_t=((y5[ToInt(RealVal(0)+(t-0.0)/10000.0)])-(y4[ToInt(RealVal(0)+(t-0.0)/10000.0)]))<=40.0
 	z3solver.add(Not(ForAll([t], Implies(interval_t, conditions_t))))
 	status=z3solver.check()
 	print(status)

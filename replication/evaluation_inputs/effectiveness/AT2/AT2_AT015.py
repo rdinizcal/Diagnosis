@@ -10028,7 +10028,7 @@ def AT2():
 
 
 	interval_t=And(0<=t, t<=10000000)
-	conditions_t=(e_speed[ToInt(RealVal(0)+(t-0.0)/10000.0)])<4750
+	conditions_t=(e_speed[ToInt(RealVal(0)+(t-0.0)/10000.0)])<4750.0
 	z3solver.add(Not(ForAll([t], Implies(interval_t, conditions_t))))
 	status=z3solver.check()
 	print(status)
