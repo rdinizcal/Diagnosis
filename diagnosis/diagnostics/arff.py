@@ -57,6 +57,18 @@ def isfloat(num):
     except ValueError:
         return False
 
+
+def _arff_included(items):
+    """Drop individuals flagged out of the ARFF dataset (guide-mode inference).
+
+    With heuristics off every individual has ``include_in_arff=True``, so this is
+    the identity filter and the baseline dataset is unchanged. It runs at write
+    time because a candidate can be added to ``self.unknown`` before evaluation
+    (as Unknown) and only *later* marked inferred in place, so filtering at the
+    append site would miss it.
+    """
+    return [x for x in items if getattr(x, "include_in_arff", True)]
+
 def _attach_features_to_layout(attrs: List[str], layout: FormulaLayout | None) -> None:
     """
     Given the list of ARFF attribute declarations (without the '@attribute' prefix)
@@ -190,7 +202,7 @@ def build_attributes(seed, formulae: list):
         'SINGALS': 0,
         'TERM': 0
     }
-    raw_terminators = list(set(treenode.get_terminators(seed)))
+    raw_terminators = sorted(set(treenode.get_terminators(seed)), key=lambda x: str(x))
 
     # Build a set of operator-like tokens that should NEVER be treated as terms
     operator_tokens = set(
@@ -322,7 +334,10 @@ def build_attributes(seed, formulae: list):
     return ret
 
 def write_dataset_all( path: str, now, seed, population, seed_ch, unknown, unsats, sats, entire_dataset, layout):
-    # entire_dataset = sats + unsats + unknown
+    # entire_dataset = sats + unsats + unknown (excluding inferred rows in guide mode)
+    unknown = _arff_included(unknown)
+    unsats = _arff_included(unsats)
+    sats = _arff_included(sats)
     entire_dataset = list()
     [entire_dataset.append(x) for x in unknown if (x not in entire_dataset)]
     [entire_dataset.append(x) for x in unsats if (x not in entire_dataset)]
@@ -362,9 +377,15 @@ def write_dataset_all( path: str, now, seed, population, seed_ch, unknown, unsat
     return filename_str
 
 def write_dataset_qty(path: str, now, seed, seed_ch, sats: List, unsats: List, unknown: List, layout: FormulaLayout, per_cut: float) -> str:
+    # Sort the caller's lists in place (baseline side effect), then exclude
+    # inferred rows (guide mode) into local copies for writing. When heuristics
+    # are off the filter is the identity, so behaviour is unchanged.
     sats.sort(key=lambda x : x.sw_score, reverse=True)
     unsats.sort(key=lambda x : x.sw_score, reverse=True)
     unknown.sort(key=lambda x : x.sw_score, reverse=True)
+    sats = _arff_included(sats)
+    unsats = _arff_included(unsats)
+    unknown = _arff_included(unknown)
 
     min_len = min([len(sats), len(unsats), len(unknown)])
     per_qty = math.ceil(min_len * per_cut)
@@ -416,3 +437,48 @@ def write_dataset_qty(path: str, now, seed, seed_ch, sats: List, unsats: List, u
             f.write(f",{chromosome.madeit.upper()}\n")
     return filename_str
 
+
+def write_dataset_sat_unsat(
+    path: str,
+    now,
+    seed,
+    seed_ch,
+    sats: List,
+    unsats: List,
+    layout: FormulaLayout,
+    suffix: str,
+) -> str:
+    """
+    Write the cumulative binary dataset used by adaptive stopping checks.
+    """
+    sats = _arff_included(sats)
+    unsats = _arff_included(unsats)
+    try:
+        chstr = sats[0].arrf_str() if sats else unsats[0].arrf_str()
+    except Exception:
+        chstr = str(seed_ch)
+
+    chstr_norm = _normalize_row_str(chstr)
+    attrs = build_attributes(seed, chstr_norm.split(","))
+    _attach_features_to_layout(attrs, layout)
+
+    nowstr = f'{now}'.replace(' ', '_')
+    nowstr = nowstr.replace(':', '_')
+    safe_suffix = suffix.replace(' ', '_').replace(':', '_')
+    filename_str = '{}/dataset_stopping_{}_{}.arff'.format(path, nowstr, safe_suffix)
+    with open(filename_str, 'w') as f:
+        f.write(f'@relation stopping.{nowstr}.{safe_suffix}\n')
+        f.write('\n')
+        for att in attrs:
+            f.write(f'@attribute {att}\n')
+
+        f.write('@attribute VEREDICT {TRUE, FALSE}\n')
+        f.write('\n')
+        f.write('@data\n')
+        for chromosome in sats:
+            f.write(_normalize_row_str(chromosome.arrf_str()))
+            f.write(f",{chromosome.madeit.upper()}\n")
+        for chromosome in unsats:
+            f.write(_normalize_row_str(chromosome.arrf_str()))
+            f.write(f",{chromosome.madeit.upper()}\n")
+    return filename_str

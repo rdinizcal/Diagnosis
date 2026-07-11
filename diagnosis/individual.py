@@ -52,6 +52,14 @@ class Individual():
         self.madeit = 'Unknown'
         self.sw_score = -1
         self.mutations = None
+        # Heuristics bookkeeping. Defaults keep baseline behaviour:
+        # `inferred` marks a verdict produced without a solver call; only rows
+        # with `include_in_arff` feed the diagnostics dataset.
+        self.inferred = False
+        self.include_in_arff = True
+        # `vacuous` marks a candidate whose mutable time window is empty (Sprint 7):
+        # a trivially SATISFIED ForAll that must not feed the tree as a real SAT.
+        self.vacuous = False
         # self.maxint, self.minint = self.get_minmax(terminators, int)
         # self.maxfloat, self.minfloat = self.get_minmax(terminators, float)
 
@@ -74,6 +82,9 @@ class Individual():
     def reset(self):
         self.fitness = -1
         self.madeit = 'Unknown'
+        self.inferred = False
+        self.include_in_arff = True
+        self.vacuous = False
 
     def __eq__(self, other):
         return str(self) == str(other)

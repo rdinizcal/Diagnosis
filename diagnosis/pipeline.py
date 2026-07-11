@@ -73,6 +73,12 @@ def build_ga_from_config(cfg: Config) -> GA:
         mutation_config=mutation_cfg,
         property_path=str(cfg.input.requirement_file),
         formula_layout=layout,
+        trace_check_timeout_sec=cfg.evaluation.trace_check_timeout_sec,
+        cache_enabled=cfg.evaluation.cache_enabled,
+        engine=cfg.evaluation.engine,
+        parallel_workers=cfg.evaluation.parallel_workers,
+        stopping_config=cfg.ga.stopping,
+        heuristics_config=cfg.heuristics,
     )
 
     return ga
@@ -115,6 +121,8 @@ def run_diagnostics(cfg: Config) -> None:
         datasets = ga.evolve()
         if hasattr(ga, "stats") and isinstance(ga.stats, dict):
             summary.update({f"ga_{k}": v for k, v in ga.stats.items()})
+        if getattr(ga, "stopping_mode", "count") != "count":
+            summary["ga_stopping_checks"] = getattr(ga, "stopping_checks", [])
         summary["ga_sec"] = time.time() - t_ga
 
         # J48 per dataset
@@ -151,6 +159,13 @@ def run_diagnostics(cfg: Config) -> None:
             summary["population_size"] = getattr(ga, "population_size", None) or getattr(ga, "size", None)
             summary["max_generations"] = getattr(ga, "max_generations", None)
             summary["ga_target_sats"] = getattr(ga, "target_sats", None)
+            heuristics = getattr(ga, "heuristics", None)
+            if heuristics is not None and getattr(heuristics, "adaptive_on", False):
+                report = heuristics.report()
+                if "one_class_space" in report:
+                    summary["one_class_space"] = report["one_class_space"]
+                if "adaptive_unknown_bands" in report:
+                    summary["adaptive_unknown_bands"] = report["adaptive_unknown_bands"]
 
         # Write summary in the GA run directory if available; else output_root
         out_dir = getattr(ga, "path", None) or output_root

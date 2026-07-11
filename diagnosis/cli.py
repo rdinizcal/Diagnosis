@@ -293,6 +293,48 @@ def _cmd_explain_position(args: argparse.Namespace) -> int:
 
     return 0
 
+def _cmd_explain_polarity(args: argparse.Namespace) -> int:
+    """
+    Print the static monotonicity (polarity) of every numeric threshold
+    position in the configured requirement: INCREASING, DECREASING, or UNKNOWN
+    with a reason. Extends `explain-positions` with the direction the interval
+    inference layer would use to gate solver-call skipping.
+    """
+    try:
+        cfg = load_config(args.config)
+    except ConfigError as exc:
+        print(f"Config error: {exc}", file=sys.stderr)
+        return 1
+
+    formula = load_formula_from_property(cfg.input.requirement_file)
+
+    from diagnosis.lang.polarity import explain, numeric_positions
+    from diagnosis.lang.quantize import quantizability
+
+    # Restrict to config-listed positions when provided, else all numeric ones.
+    allowed = getattr(cfg.mutation, "allowed_positions", None)
+    numeric = set(numeric_positions(formula))
+    if allowed:
+        targets = [p for p in allowed if p in numeric]
+        if not targets:
+            targets = sorted(numeric)
+    else:
+        targets = sorted(numeric)
+
+    # ``quantize=True`` promotes sample-aligned time bounds from UNKNOWN to a
+    # definite direction; the extra column reports the gate and its period.
+    results = explain(formula, targets, quantize=True)
+
+    print(f"{'Pos':>3}  {'Direction':<11}  {'Quantizable':<20}  Reason")
+    print("-" * 100)
+    for idx in sorted(results):
+        direction, reason = results[idx]
+        info = quantizability(formula, idx)
+        quant_col = f"yes (period={info.period:g})" if info.quantizable else "no"
+        print(f"{idx:3d}  {direction.value:<11}  {quant_col:<20}  {reason}")
+    return 0
+
+
 def _cmd_run(args) -> int:
     """
     Main GA/diagnostics entrypoint.
@@ -476,6 +518,17 @@ def main(argv=None) -> int:
     )
     explain_pos_single_p.set_defaults(func=_cmd_explain_position)
 
+    explain_polarity_p = subparsers.add_parser(
+        "explain-polarity",
+        help="Show the static monotonicity (polarity) of numeric threshold positions.",
+    )
+    explain_polarity_p.add_argument(
+        "--config",
+        required=True,
+        help="Path to JSON config file.",
+    )
+    explain_polarity_p.set_defaults(func=_cmd_explain_polarity)
+
 
     args = parser.parse_args(argv)
 
@@ -505,6 +558,9 @@ def main(argv=None) -> int:
 
     if args.command == "explain-position":
         return _cmd_explain_position(args)
+
+    if args.command == "explain-polarity":
+        return _cmd_explain_polarity(args)
 
     # No subcommand: show help
     parser.print_help()
