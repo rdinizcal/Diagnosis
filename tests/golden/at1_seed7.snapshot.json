@@ -1,0 +1,14 @@
+{
+  "dataset_all": "@relation all.2026-01-02_03_04_05.678901\n\n\n@attribute QUANTIFIERS0 {ForAll,Exists}\n@attribute TERM0 {t,v_speed[ToInt((RealVal(0)+((t-0.0)/10000.0)))]}\n@attribute LOGICALS0 {And,Or,Implies}\n@attribute LOGICALS1 {And,Or,Implies}\n@attribute NUM0 NUMERIC\n@attribute RELATIONALS0 {<,>,<=,>=}\n@attribute TERM1 {t,v_speed[ToInt((RealVal(0)+((t-0.0)/10000.0)))]}\n@attribute TERM2 {t,v_speed[ToInt((RealVal(0)+((t-0.0)/10000.0)))]}\n@attribute RELATIONALS1 {<,>,<=,>=}\n@attribute NUM1 NUMERIC\n@attribute TERM3 {t,v_speed[ToInt((RealVal(0)+((t-0.0)/10000.0)))]}\n@attribute RELATIONALS2 {<,>,<=,>=}\n@attribute NUM2 NUMERIC\n@attribute VEREDICT {TRUE, FALSE, UNKNOWN}\n\n@data\nForAll,t,Implies,Or,0,<=,t,t,<=,20000000,v_speed[ToInt((RealVal(0)+((t-0.0)/10000.0)))],<,120.000000,FALSE\nForAll,t,Implies,Or,0,<=,t,t,<,20000000,v_speed[ToInt((RealVal(0)+((t-0.0)/10000.0)))],<,120.000000,FALSE\n",
+  "tree_100": "ARFF <run>/dataset_qty_2026-01-02_03_04_05.678901_per100.arff has 0 instances; J48 was not run.\n",
+  "verdict_sequence": [
+    "False",
+    "False",
+    "False",
+    "False",
+    "False",
+    "False",
+    "False",
+    "False"
+  ]
+}
