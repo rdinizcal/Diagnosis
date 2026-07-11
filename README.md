@@ -159,9 +159,10 @@ All output is written in the output directory.
 A config JSON includes:
 - input.requirement_file – Python property file from ThEodorE
 - input.traces_file – trace Z3 encoding
-- ga.* – population, generations, seed, rates
+- ga.* – population, generations, seed, rates (ga.stopping.* – optional adaptive stopping, see "Performance options")
 - mutation.* – allowed positions, numeric bounds, operator toggles
 - diagnostics.* – ARFF output, Weka path, J48 options
+- evaluation.* – optional evaluation tuning (cache, worker engine, parallelism, timeout), see "Performance options"
 
 Example:
 ```json
@@ -178,7 +179,22 @@ Example:
     "crossover_rate": 0.95,      // Probability of combining two parents
     "mutation_rate": 0.10,       // Probability of mutating an individual
     "seed": 42,                  // Random seed for reproducibility
-    "target_sats": 10            // Target number of formaulas to be satisfied and unsatisfied (stop criterion)
+    "target_sats": 10,           // Target number of formaulas to be satisfied and unsatisfied (stop criterion)
+
+    // Optional adaptive stopping (see "Performance options"). Omitting this
+    // block, or leaving mode="count", reproduces the legacy stop criterion.
+    "stopping": {
+      "mode": "count"            // "count" (default) | "cv_pr" | "tree_stable"
+    }
+  },
+
+  // Optional evaluation tuning (see "Performance options"). Every key is
+  // opt-in; omitting the whole block preserves legacy behaviour.
+  "evaluation": {
+    "trace_check_timeout_sec": 3600,  // Per-candidate Z3 trace-check timeout (legacy hard-coded value)
+    "cache_enabled": false,           // Memoize verdicts by property-expression hash
+    "engine": "subprocess",           // "subprocess" (default) | "worker" (persistent solver)
+    "parallel_workers": 1             // Evaluate a generation's candidates over N workers (1 = serial)
   },
 
   "mutation": {
@@ -213,6 +229,195 @@ Example:
 }
 
 ```
+
+---
+
+## Performance options
+
+These keys tune *how* candidates are evaluated and *when* evolution stops.
+They are performance optimizations, not behavior changes: **every option
+defaults to a value that reproduces legacy behavior bit-for-bit.** A config
+that omits the `evaluation` block and leaves `ga.stopping.mode` at `"count"`
+produces the same verdicts, GA trajectory, ARFF datasets, J48 trees, and
+`report.json` (modulo wall-clock/resource fields) as before these options
+existed. Speedups are workload-dependent; enable an option and compare the
+wall-clock fields in `report.json` for your requirement.
+
+### `evaluation` block
+
+| Key | Default | Effect |
+| --- | --- | --- |
+| `trace_check_timeout_sec` | `3600` | Per-candidate Z3 trace-check timeout, in seconds. The default matches the previously hard-coded one-hour limit, so it changes nothing; lower it to fail slow/undecidable candidates faster. |
+| `cache_enabled` | `false` | When `true`, verdicts are memoized by `sha256` of the property-expression string in an in-memory dict backed by a SQLite file in the run directory, and consulted before any solver call. Verdict-preserving by construction (a cache hit returns the verdict the solver already produced). Hit/miss/distinct counters are written to `report.json` only when enabled. Helps workloads where formulas recur across generations. |
+| `engine` | `"subprocess"` | `"subprocess"` spawns a fresh Python+Z3 process per candidate (legacy path). `"worker"` keeps a long-lived solver process that runs the trace setup once and then serves push→check→pop requests, avoiding repeated setup cost. The worker is a verdict oracle equivalent to the subprocess engine. On a worker crash it is restarted once, with a per-candidate fallback to a subprocess; both counts are recorded in `report.json`. |
+| `parallel_workers` | `1` | Number of candidates from one generation to evaluate concurrently, each with its own temp file (the shared temp file is used only on the serial path). Results are applied in population-index order after the batch completes, so datasets and `report.json` are independent of worker count and scheduling. `1` keeps the serial path untouched. The cache (if enabled) is shared race-safely via SQLite WAL. |
+
+### `ga.stopping` block
+
+| Key | Default | Effect |
+| --- | --- | --- |
+| `mode` | `"count"` | `"count"` keeps the legacy stop criterion (at least `target_sats` sat *and* `target_sats` unsat samples). `"cv_pr"` stops once J48 weighted cross-validated precision **and** recall are both ≥ `pr_threshold` for `patience` consecutive checks. `"tree_stable"` stops once the normalized root+depth-2 tree hash is unchanged for `patience` consecutive checks. |
+| `pr_threshold` | `0.95` | Precision/recall bar for `cv_pr`. |
+| `check_every_generations` | `1` | Minimum number of generations between checks. |
+| `patience` | `2` | Number of consecutive passing checks required before stopping. |
+| `min_samples` | `0` | No check runs until this many cumulative samples exist. |
+| `max_samples` | `null` | Hard cap; evolution stops as soon as the cumulative sample count reaches it. |
+
+Any adaptive check additionally requires at least one sat **and** one unsat
+sample before it can fire (one-class guard), and each check is recorded in the
+run summary under `ga_stopping_checks` when a non-`count` mode is active.
+
+### `heuristics` block (search-pruning heuristics)
+
+Four opt-in heuristics cut solver work without losing verdicts. **All default
+OFF**; a config with no `heuristics` block is bit-identical to the baseline
+(verified by `tests/test_golden_parity.py`). They are gated by a static
+monotonicity proof and protected by a runtime consistency guard.
+
+```jsonc
+"heuristics": {
+  "interval_inference": {
+    "enabled": false,
+    "mode": "guide",              // "guide" | "label"
+    "empirical_validation_k": 3,  // confirming solves before a direction is trusted
+    "min_gap": 1e-6               // relative bracket width below which shrinking stops
+  },
+  "two_tier_timeout": {
+    "enabled": false,
+    "low_sec": 60,
+    "high_sec": 600,
+    "escalation": "once_per_formula"
+  },
+  "adaptive_range": {
+    "enabled": false,
+    "exploration_fraction": 0.15,
+    "endpoint_init": true,
+    "on_one_class": "report_and_stop",
+    "widen_factor": 1.5,
+    "max_widenings": 4
+  },
+  "time_quantization": {
+    "enabled": false,
+    "validate_every_n_hits": 50,  // periodic same-class double-solve validation
+    "period": null,               // optional override; must match the trace spacing
+    "force_period": false         // validation-only: skip the period cross-check
+  }
+}
+```
+
+**`interval_inference`** — for a candidate that differs from the seed only at
+numeric positions whose polarity is provably monotone (see `explain-polarity`),
+the trace-check verdict is monotone in those constants. The tool reasons over the
+**joint** space of all monotone knobs (parametric-STL monotonicity is
+per-coordinate, so SATISFIED is an up-set and VIOLATED a down-set in the product
+/ Pareto order) and *infers* a candidate's verdict with **no solver call** when it
+**dominates** a known-SATISFIED point (⇒ SATISFIED) or is **dominated by** a
+known-VIOLATED point (⇒ VIOLATED). With a single monotone knob this reduces to
+the classic SATISFIED / VIOLATED half-lines plus UNDECIDED band; with several
+knobs it infers candidates that moved *all* of them at once. A candidate that
+also changes a **non-monotone** (`UNKNOWN`-polarity) numeric knob, or changes the
+formula structurally, is always solved.
+
+Soundness is doubly enforced: (1) inference is attempted only on
+statically-proven monotone knobs, and (2) after **every** real solve the verdict
+is checked against the region — a SATISFIED point dominated by a VIOLATED point
+(or vice versa) is a `monotonicity_violation`, which permanently disables
+inference, discards the region, and records a witness in `report.json`. In
+addition, `empirical_validation_k` consistent real solves are required before any
+verdict is inferred.
+
+- `mode: "guide"` — inferred verdicts only skip solver calls for the GA's
+  bookkeeping; inferred individuals are **excluded** from the ARFF dataset (the
+  decision tree trains on real verdicts only). Zero effect on diagnosis
+  validity; smaller training set. **Default.**
+- `mode: "label"` — inferred verdicts are written into the ARFF as normal rows
+  (larger training set). To keep the J48 tree comparable to guide/baseline, the
+  inferred flag is **not** added as an ARFF attribute (J48 would split on it);
+  instead it is recorded in an `inferred_labels.csv` sidecar in the run
+  directory. Requires the soundness argument in the paper.
+**`two_tier_timeout`** — solve with `low_sec` first; on UNDECIDED, re-solve once
+with `high_sec` (`report.json` counters: `tier1_decided`, `tier2_decided`,
+`tier2_undecided`). A formula whose high-tier solve is UNDECIDED is cached as
+UNDECIDED, so exact repeats never re-solve. **Region memory:** when interval
+inference is also on and a single-mutation candidate lands inside a *confirmed*
+UNDECIDED band, the high tier is skipped (`region_memory_skips`) — slow
+requirements whose unknowns burn any budget stop paying repeatedly.
+`high_sec` must be `<= evaluation.trace_check_timeout_sec` (validated at load).
+
+**`adaptive_range`** — changes numeric candidate generation for a monotone
+position. With `endpoint_init: true`, the two configured range endpoints are
+evaluated before generation 0. If the endpoints are the same decisive class,
+the run records a structured `one_class_space` finding in `report.json` and
+`summary.json`; `on_one_class` controls whether the run stops, widens the range
+in the polarity-easier direction, or continues for comparison. During mutation,
+draws come from the current SAT/UNSAT unresolved bracket with probability
+`1 - exploration_fraction`, and from the full configured range otherwise. If no
+bracket exists, a confirmed UNDECIDED band is reached, or the monotonicity guard
+disables inference for that position, sampling reverts to the full range.
+
+This is a **search-behavior change**: results obtained with
+`adaptive_range.enabled: true` require re-validation against expert ground
+truth because candidate distribution and GA trajectory change.
+
+**`time_quantization`** — traces are sampled at a fixed period (detected from the
+`ToInt(… / PERIOD)` index and cross-checked against the trace timestamp spacing),
+and a signal is read as `v_speed[ToInt((t - offset) / PERIOD)]`. A mutated
+time-window bound `B` therefore changes the verdict only through
+`floor(B / PERIOD)`: every `B` inside one inter-sample interval yields an
+equivalent formula. When ON, the verdict cache is consulted with a **canonical**
+key in which every quantizable time token is replaced by its class index
+`floor(value/period)`, so distinct raw bounds in one class collapse onto a single
+solve. **Only the key changes** — the formula sent to the solver on a miss is the
+original, un-canonicalized one, and the feature composes with both engines and the
+two-tier timeout unchanged. Which positions are quantizable (and their period) is
+shown by `explain-polarity`.
+
+Two safety nets back the static gate: every `validate_every_n_hits` same-class
+cache hits, the new value is actually re-solved and compared; a mismatch disables
+quantization for that position, purges the class's cache entries, and logs a
+`quantization_violation` witness (must be 0 in a valid run). A **vacuity guard**
+flags a candidate whose two mutable bounds define an empty window (`a >= b`, a
+vacuously SATISFIED `ForAll`) so it never feeds the tree as an ordinary SAT.
+`report.json` gains `quantized_positions`, `quant_hits_exact` /
+`quant_hits_canonical`, `quant_validations`, `quantization_violations`, and
+`vacuous_candidates`.
+
+**In combination with `adaptive_range`**, a quantizable monotone bound brackets
+on **class indices** rather than raw floats (highest-known-UNSAT class to
+lowest-known-SAT class), with a minimum gap of one sample period; the bracket
+bisects to the boundary in `ceil(log2(#classes))` real solves. The recovered
+breakpoint is recorded in `report.json` as `boundary_at` — the **sample
+timestamp** between the two adjacent classes. Reported time boundaries are
+therefore sample-aligned: **this is more faithful to the trace, not less
+precise**, since sub-sample bounds are indistinguishable to the encoding.
+
+This is a **search-behavior change**: results obtained with
+`time_quantization.enabled: true` require re-validation against expert ground
+truth, and any reported boundary must be read as sample-aligned.
+
+Per-run region state is persisted to `inference_state.json`; heuristic counters
+are folded into `report.json`.
+
+---
+
+## Inspecting monotonicity (`explain-polarity`)
+
+To see the proven direction of every numeric threshold position (this gates
+interval inference):
+```
+diagnosis explain-polarity --config configs/AT1_config_exp1.json
+```
+```
+Pos  Direction    Quantizable           Reason
+----------------------------------------------------------------------------------------------------
+ 11  INCREASING   no                    threshold right of '<' against a signal term; polarity flag preserved (+) -> INCREASING
+```
+`UNKNOWN` means inference is disabled for that position (equality operators,
+constants under arithmetic, non-quantizable temporal-window bounds, or any path
+the analysis cannot soundly classify). The **Quantizable** column reports whether
+a position is a sample-aligned time bound and its detected period; such bounds
+are promoted from `UNKNOWN` to a definite direction (the floor of a monotone
+index is monotone) and drive the `time_quantization` heuristic.
 
 ---
 

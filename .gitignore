@@ -1,6 +1,17 @@
-__pycache__
-# Hidden file to sort folders on MacOS systems.
+__pycache__/
+*.py[cod]
+
+# macOS
 .DS_Store
 */.DS_Store
-ga_hls.egg-info/
+
+# Packaging
+*.egg-info/
+
+# Run outputs and regenerable artifacts
+outputs/
 tmp/
+reports/
+
+# Verdict caches
+*.sqlite
