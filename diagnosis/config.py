@@ -30,6 +30,9 @@ class EvaluationConfig:
     cache_enabled: bool = False
     engine: str = "subprocess"
     parallel_workers: int = 1
+    # Optional requirement id for engine='rtamt'; auto-resolved from the property
+    # file name when left unset.
+    rtamt_subject: Optional[str] = None
 
 
 @dataclass
@@ -527,10 +530,10 @@ def load_config(path: str | Path) -> Config:
     )
 
     engine = str(evaluation_data.get("engine", EvaluationConfig.engine))
-    if engine not in ("subprocess", "worker"):
+    if engine not in ("subprocess", "worker", "rtamt"):
         raise ConfigError(
             f"Invalid 'evaluation.engine' {engine!r} in {path!s}: "
-            "expected 'subprocess' or 'worker'"
+            "expected 'subprocess', 'worker' or 'rtamt'"
         )
 
     evaluation_cfg = EvaluationConfig(
@@ -548,6 +551,7 @@ def load_config(path: str | Path) -> Config:
             1,
             int(evaluation_data.get("parallel_workers", EvaluationConfig.parallel_workers)),
         ),
+        rtamt_subject=evaluation_data.get("rtamt_subject", EvaluationConfig.rtamt_subject),
     )
 
     heuristics_cfg = _parse_heuristics(
