@@ -132,6 +132,7 @@ class GA(object):
         cache_enabled: bool = False,
         engine: str = "subprocess",
         parallel_workers: int = 1,
+        rtamt_subject: str | None = None,
         stopping_config=None,
         heuristics_config=None,
         ):
@@ -210,6 +211,8 @@ class GA(object):
         self.cache_enabled = bool(cache_enabled)
         self.engine = engine
         self.parallel_workers = max(1, int(parallel_workers))
+        self.rtamt_subject = rtamt_subject
+        self.rtamt_engine = None
         self.worker: SolverWorker | None = None
         self.worker_restarts = 0
         self.worker_fallbacks = 0
@@ -268,6 +271,14 @@ class GA(object):
             trace_period=trace_period,
         )
 
+        # The RTAMT engine is a deliberately minimal verdict oracle: it runs the
+        # baseline black-box search only (no parallelism, no heuristics).
+        if self.engine == "rtamt":
+            if self.parallel_workers > 1:
+                raise ValueError("engine='rtamt' runs sequentially; set parallel_workers=1")
+            if self.heuristics.any_on or self.heuristics.quant_on:
+                raise ValueError("engine='rtamt' requires all search heuristics disabled")
+
         self.init_population()
         self.execution_report = {'TOTAL': 0}
         self._adaptive_early_stop = False
@@ -295,6 +306,10 @@ class GA(object):
             self.execution_report["worker_fallbacks"] = self.worker_fallbacks
         if self.parallel_workers > 1:
             self.execution_report["parallel_workers"] = self.parallel_workers
+        if self.engine == "rtamt" and self.rtamt_engine is not None:
+            self.execution_report["rtamt_subject"] = self.rtamt_engine.subject_id
+            self.execution_report["rtamt_evaluations"] = self.rtamt_engine.evaluations
+            self.execution_report["rho_zero"] = self.rtamt_engine.rho_zero
         if self.heuristics.any_on or self.heuristics.quant_on:
             self.execution_report.update(self.heuristics.report())
 
@@ -912,6 +927,26 @@ class GA(object):
             return "Problem", ""
         return "Problem", ""
 
+    def _madeit_from_rtamt_verdict(self, verdict: str) -> tuple[str, str]:
+        if verdict == V_SATISFIED:
+            return "True", ""
+        if verdict == V_VIOLATED:
+            return "False", ""
+        if verdict == V_UNDECIDED:
+            return "Unknown", "REQUIREMENT UNDECIDED"
+        return "Problem", ""
+
+    def _ensure_rtamt(self):
+        """Lazily build the RTAMT engine (verdict oracle) for engine='rtamt'."""
+        if self.rtamt_engine is None:
+            from .engines.rtamt_engine import RtamtEngine
+
+            src = self.property_path or self.base_property_script
+            if not src:
+                raise RuntimeError("[diagnosis] rtamt: no property_path set")
+            self.rtamt_engine = RtamtEngine(src, subject=self.rtamt_subject)
+        return self.rtamt_engine
+
     def _ensure_worker(self) -> SolverWorker:
         if self.worker is None:
             self.worker = SolverWorker(
@@ -1289,6 +1324,13 @@ class GA(object):
                 self._mark_real(chromosome)
                 self._quant_validate_after_hit(chromosome.ast, ckey, nline, madeit)
                 self._apply_madeit(chromosome, madeit, "")
+            elif self.engine == "rtamt":
+                start = time.time()
+                verdict, _rho = self._ensure_rtamt().check(chromosome.ast)
+                solve_seconds = time.time() - start
+                madeit, err = self._madeit_from_rtamt_verdict(verdict)
+                self.verdict_cache.put(ckey, madeit, solve_seconds)
+                self._apply_madeit(chromosome, madeit, err)
             elif self.heuristics.any_on:
                 self._evaluate_with_heuristics(chromosome, nline, script_path)
             else:
