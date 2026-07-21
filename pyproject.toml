@@ -23,6 +23,16 @@ dependencies = [
   "tqdm"
 ]
 
+[project.optional-dependencies]
+# Optional third checker (engine='rtamt'). Not pulled into the default install;
+# the effectiveness/efficiency container ships Z3 only. On Python >= 3.13 the
+# antlr4 runtime that rtamt 0.3.5 pins (4.7) fails to import, so a newer runtime
+# is required alongside it.
+rtamt = [
+  "rtamt==0.3.5",
+  "antlr4-python3-runtime>=4.9.3",
+]
+
 [project.urls]
 "Homepage" = "https://github.com/rdinizcal/Diagnosis"
 
@@ -30,6 +40,6 @@ dependencies = [
 diagnosis = "diagnosis.cli:main"
 
 [tool.setuptools]
-packages = ["diagnosis", "diagnosis.lang", "diagnosis.mutation", "diagnosis.diagnostics"]
+packages = ["diagnosis", "diagnosis.lang", "diagnosis.mutation", "diagnosis.diagnostics", "diagnosis.engines"]
 [tool.setuptools.package-dir]
 diagnosis = "diagnosis"
