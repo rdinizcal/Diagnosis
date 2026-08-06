@@ -69,6 +69,34 @@ def _arff_included(items):
     """
     return [x for x in items if getattr(x, "include_in_arff", True)]
 
+def _dedup(items):
+    """Drop repeated individuals, preserving order.
+
+    Mirrors the membership test ``write_dataset_all`` already uses, so the two
+    writers agree on what counts as one sample.
+    """
+    out = []
+    for x in items:
+        if x not in out:
+            out.append(x)
+    return out
+
+def _spread(items, k):
+    """Take ``k`` items spaced evenly across ``items``, preserving order.
+
+    The lists reach here sorted by ``sw_score``, so a plain ``items[:k]`` head
+    slice returns only the top-scoring tail of the search — individuals that are
+    near-identical in the very feature the tree has to threshold. Striding keeps
+    the full score range, and with it the numeric spread J48 needs to place a
+    split. Deterministic: no RNG, so a given run is still reproducible.
+    """
+    if k <= 0:
+        return []
+    if len(items) <= k:
+        return list(items)
+    step = len(items) / k
+    return [items[int(i * step)] for i in range(k)]
+
 def _attach_features_to_layout(attrs: List[str], layout: FormulaLayout | None) -> None:
     """
     Given the list of ARFF attribute declarations (without the '@attribute' prefix)
@@ -377,30 +405,40 @@ def write_dataset_all( path: str, now, seed, population, seed_ch, unknown, unsat
     return filename_str
 
 def write_dataset_qty(path: str, now, seed, seed_ch, sats: List, unsats: List, unknown: List, layout: FormulaLayout, per_cut: float) -> str:
+    """Write the J48 training set holding ``per_cut`` of the collected samples.
+
+    ``per_cut`` is a fraction of the data actually collected, applied per class:
+    ``per_cut=1.0`` writes every decided sample, ``0.10`` writes a tenth of each
+    class. The five cuts together form the data-efficiency curve the pipeline
+    feeds to J48.
+
+    ``unknown`` is accepted for call-site compatibility and deliberately not
+    written. An undecided verdict is a missing label, not a third class: the
+    solver timed out, so we do not know what the formula does. Training on it
+    teaches the tree to predict our own timeouts.
+    """
     # Sort the caller's lists in place (baseline side effect), then exclude
     # inferred rows (guide mode) into local copies for writing. When heuristics
     # are off the filter is the identity, so behaviour is unchanged.
     sats.sort(key=lambda x : x.sw_score, reverse=True)
     unsats.sort(key=lambda x : x.sw_score, reverse=True)
     unknown.sort(key=lambda x : x.sw_score, reverse=True)
-    sats = _arff_included(sats)
-    unsats = _arff_included(unsats)
-    unknown = _arff_included(unknown)
+    sats = _dedup(_arff_included(sats))
+    unsats = _dedup(_arff_included(unsats))
 
-    min_len = min([len(sats), len(unsats), len(unknown)])
-    per_qty = math.ceil(min_len * per_cut)
-    sats = sats
-    unsats = unsats
-    unknown = unknown
-    if len(sats) > per_qty:
-        sats = sats[:per_qty]
-    if len(unsats) > per_qty:
-        unsats = unsats[:per_qty]
-    if len(unknown) > per_qty:
-        unknown = unknown[:per_qty]
+    # Membership does not imply the label: an individual is filed the first time
+    # it is seen and can be re-evaluated and relabelled in place afterwards, so a
+    # list can hold entries that have since turned Unknown (or flipped classes).
+    # Select on the verdict each one carries now, which is also what keeps an
+    # Unknown out of a file whose header declares only TRUE/FALSE.
+    sats = [x for x in sats if x.madeit == 'True']
+    unsats = [x for x in unsats if x.madeit == 'False']
+
+    sats = _spread(sats, math.ceil(len(sats) * per_cut))
+    unsats = _spread(unsats, math.ceil(len(unsats) * per_cut))
 
     try:
-        chstr = sats[0].arrf_str()
+        chstr = (sats[0] if sats else unsats[0]).arrf_str()
     except Exception as e:
         chstr = str(seed_ch)
 
@@ -420,7 +458,7 @@ def write_dataset_qty(path: str, now, seed, seed_ch, sats: List, unsats: List, u
         for att in attrs:
             f.write(f'@attribute {att}\n')
 
-        f.write('@attribute VEREDICT {TRUE, FALSE, UNKNOWN}\n')
+        f.write('@attribute VEREDICT {TRUE, FALSE}\n')
         f.write('\n')
         f.write('@data\n')
         for chromosome in sats:
@@ -428,10 +466,6 @@ def write_dataset_qty(path: str, now, seed, seed_ch, sats: List, unsats: List, u
             f.write(ch_str_norm)
             f.write(f",{chromosome.madeit.upper()}\n")
         for chromosome in unsats:
-            ch_str_norm = _normalize_row_str(chromosome.arrf_str())
-            f.write(ch_str_norm)
-            f.write(f",{chromosome.madeit.upper()}\n")
-        for chromosome in unknown:
             ch_str_norm = _normalize_row_str(chromosome.arrf_str())
             f.write(ch_str_norm)
             f.write(f",{chromosome.madeit.upper()}\n")
