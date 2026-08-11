@@ -432,16 +432,43 @@ def _flip_logical(node: And | Or | Implies, cfg: MutationConfig, rng: random.Ran
     return node
 
 
+def _guarded_body(body: Formula, to: str) -> Formula:
+    """Re-pair a restricted quantifier's guard with its new binder.
+
+    A bounded quantifier is written one of two ways, and the connective is not
+    free to choose:
+
+        forall t. (t in I -> phi(t))        guard as an implication
+        exists t. (t in I and phi(t))       guard as a conjunction
+
+    Swapping the binder while keeping the body turns the formula into a
+    constant. ``exists t. (t in I -> phi(t))`` is a tautology -- any t outside
+    I falsifies the antecedent, so phi is never consulted -- and the mirror
+    case ``forall t. (t in I and phi(t))`` is unsatisfiable, since it demands
+    every real t lie in I. Either way the mutated candidate stops depending on
+    the tokens the search is trying to diagnose.
+
+    Only the guarded shapes are rewritten. A body that is not a two-argument
+    ``Implies``/``And`` is returned untouched, so an unguarded quantifier flips
+    exactly as before.
+    """
+    if to == "Exists" and isinstance(body, Implies):
+        return And(args=[body.left, body.right])
+    if to == "ForAll" and isinstance(body, And) and len(body.args) == 2:
+        return Implies(left=body.args[0], right=body.args[1])
+    return body
+
+
 def _flip_quantifier(node: ForAll | Exists, cfg: MutationConfig, rng: random.Random, idx: int) -> Formula:
     """
-    Flip between ForAll and Exists.
+    Flip between ForAll and Exists, re-pairing the guard (see _guarded_body).
     """
     allowed = _allowed_change(cfg, idx, "quantifier")
     allowed_q = list(cfg.quantifiers) if allowed is None else list(allowed)
 
     if isinstance(node, ForAll) and "Exists" in allowed_q:
-        return Exists(vars=list(node.vars), body=node.body)
+        return Exists(vars=list(node.vars), body=_guarded_body(node.body, "Exists"))
     if isinstance(node, Exists) and "ForAll" in allowed_q:
-        return ForAll(vars=list(node.vars), body=node.body)
+        return ForAll(vars=list(node.vars), body=_guarded_body(node.body, "ForAll"))
     return node
 
