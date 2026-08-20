@@ -1,0 +1,43 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      WEKA_VERSION: "3.8.6"
+      WEKA_SHA256: "932ea2f342b58fe45736389e9c426d5b5955e610d1f5f6485117f532068915e9"
+      BOUNCE_SHA256: "bffff1505335c02256b7ab2ccffbe4aa4d3ac9fe14c17557809b7c9d99d666ca"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Diagnosis with RTAMT test dependencies
+        run: python -m pip install -e '.[rtamt]' pytest
+
+      - name: Install checksum-pinned Weka runtime
+        run: |
+          mkdir -p "$RUNNER_TEMP/weka"
+          curl -fsSL -o "$RUNNER_TEMP/weka/weka.jar" \
+            "https://repo1.maven.org/maven2/nz/ac/waikato/cms/weka/weka-stable/${WEKA_VERSION}/weka-stable-${WEKA_VERSION}.jar"
+          curl -fsSL -o "$RUNNER_TEMP/weka/bounce.jar" \
+            "https://repo1.maven.org/maven2/nz/ac/waikato/cms/weka/thirdparty/bounce/0.18/bounce-0.18.jar"
+          echo "${WEKA_SHA256}  $RUNNER_TEMP/weka/weka.jar" | sha256sum -c -
+          echo "${BOUNCE_SHA256}  $RUNNER_TEMP/weka/bounce.jar" | sha256sum -c -
+          echo "WEKA_JAR=$RUNNER_TEMP/weka/weka.jar:$RUNNER_TEMP/weka/bounce.jar" >> "$GITHUB_ENV"
+
+      - name: Run complete test suite
+        run: python -m pytest -q

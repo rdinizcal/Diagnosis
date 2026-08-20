@@ -12,12 +12,14 @@ from ..lang.ast import (
     Exists,
     ForAll,
     Formula,
+    FuncCall,
     Implies,
     IntConst,
     Not,
     Or,
     RealConst,
     RelOp,
+    Subscript,
     Var,
 )
 
@@ -432,43 +434,54 @@ def _flip_logical(node: And | Or | Implies, cfg: MutationConfig, rng: random.Ran
     return node
 
 
-def _guarded_body(body: Formula, to: str) -> Formula:
-    """Re-pair a restricted quantifier's guard with its new binder.
+def _mentions_bound_variable(node: Formula, bound: set[str]) -> bool:
+    if isinstance(node, Var):
+        return node.name.strip("'\"") in bound
+    if isinstance(node, (And, Or)):
+        return any(_mentions_bound_variable(arg, bound) for arg in node.args)
+    if isinstance(node, Not):
+        return _mentions_bound_variable(node.arg, bound)
+    if isinstance(node, Implies):
+        return (_mentions_bound_variable(node.left, bound) or
+                _mentions_bound_variable(node.right, bound))
+    if isinstance(node, (RelOp, ArithOp)):
+        return (_mentions_bound_variable(node.left, bound) or
+                _mentions_bound_variable(node.right, bound))
+    if isinstance(node, FuncCall):
+        return any(_mentions_bound_variable(arg, bound) for arg in node.args)
+    if isinstance(node, Subscript):
+        return (_mentions_bound_variable(node.base, bound) or
+                _mentions_bound_variable(node.index, bound))
+    return False
 
-    A bounded quantifier is written one of two ways, and the connective is not
-    free to choose:
 
-        forall t. (t in I -> phi(t))        guard as an implication
-        exists t. (t in I and phi(t))       guard as a conjunction
-
-    Swapping the binder while keeping the body turns the formula into a
-    constant. ``exists t. (t in I -> phi(t))`` is a tautology -- any t outside
-    I falsifies the antecedent, so phi is never consulted -- and the mirror
-    case ``forall t. (t in I and phi(t))`` is unsatisfiable, since it demands
-    every real t lie in I. Either way the mutated candidate stops depending on
-    the tokens the search is trying to diagnose.
-
-    Only the guarded shapes are rewritten. A body that is not a two-argument
-    ``Implies``/``And`` is returned untouched, so an unguarded quantifier flips
-    exactly as before.
-    """
-    if to == "Exists" and isinstance(body, Implies):
-        return And(args=[body.left, body.right])
-    if to == "ForAll" and isinstance(body, And) and len(body.args) == 2:
-        return Implies(left=body.args[0], right=body.args[1])
-    return body
+def _is_range_guard(node: Formula, variables: list[str]) -> bool:
+    return (isinstance(node, And) and len(node.args) >= 2 and
+            all(isinstance(arg, RelOp) for arg in node.args) and
+            _mentions_bound_variable(node, set(variables)))
 
 
 def _flip_quantifier(node: ForAll | Exists, cfg: MutationConfig, rng: random.Random, idx: int) -> Formula:
     """
-    Flip between ForAll and Exists, re-pairing the guard (see _guarded_body).
+    Flip a bounded quantifier and re-pair its range guard.
+
+    ``forall x in I: p`` is encoded as ``ForAll(x, I => p)`` and
+    ``exists x in I: p`` as ``Exists(x, I and p)``. Changing only the binder
+    retains the wrong guard connective and can create a vacuous mutant, so an
+    unguarded or ambiguous quantifier is treated as inapplicable.
     """
     allowed = _allowed_change(cfg, idx, "quantifier")
     allowed_q = list(cfg.quantifiers) if allowed is None else list(allowed)
 
     if isinstance(node, ForAll) and "Exists" in allowed_q:
-        return Exists(vars=list(node.vars), body=_guarded_body(node.body, "Exists"))
+        if not isinstance(node.body, Implies) or not _is_range_guard(node.body.left, node.vars):
+            return node
+        return Exists(vars=list(node.vars), body=And(args=[node.body.left, node.body.right]))
     if isinstance(node, Exists) and "ForAll" in allowed_q:
-        return ForAll(vars=list(node.vars), body=_guarded_body(node.body, "ForAll"))
+        if (not isinstance(node.body, And) or len(node.body.args) < 2 or
+                not _is_range_guard(node.body.args[0], node.vars)):
+            return node
+        guard = node.body.args[0]
+        payload = node.body.args[1] if len(node.body.args) == 2 else And(args=node.body.args[1:])
+        return ForAll(vars=list(node.vars), body=Implies(left=guard, right=payload))
     return node
-

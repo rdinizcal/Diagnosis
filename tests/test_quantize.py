@@ -30,9 +30,8 @@ from diagnosis.lang.theodore_parser import load_formula_from_property
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "diagnosis" / "examples"
 EFFECT = (
-    Path(__file__).resolve().parents[1]
-    / "replication"
-    / "evaluation_inputs"
+    Path(__file__).resolve().parent
+    / "fixtures"
     / "effectiveness"
 )
 

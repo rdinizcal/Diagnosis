@@ -19,20 +19,14 @@ The result is a **diagnostic decision tree** that relates parts of the requireme
 
 ---
 
-## Replication package
+## Research artifact
 
-This repository includes a self-contained replication package under:
-
-- `replication/`
-
-It contains the evaluation inputs, collected run artifacts (effectiveness study + sensitivity study), analysis scripts, and documentation that binds each research question (RQ1–RQ3) to the concrete inputs/outputs used in the paper.
-
-Start here:
-
-- `replication/README.md` — high-level entry point and folder map
-- `replication/docs/REPLICATION.md` — step-by-step reproduction instructions
-- `replication/docs/rq/` — per-RQ artifact mappings and notes
-- `replication/docs/experiments/` — registries mapping paper experiment IDs to artifact paths
+The paper's data, archived runs, experiment configurations, and reproduction
+scripts are maintained in a separate replication repository. This repository
+contains only the Diagnosis tool, examples, and tests. The artifact records
+the original run commit as unavailable and separately pins its declared rerun
+snapshot; do not substitute the latest Diagnosis release when reproducing
+archived results.
 
 ---
 
@@ -193,7 +187,7 @@ Example:
   "evaluation": {
     "trace_check_timeout_sec": 3600,  // Per-candidate Z3 trace-check timeout (legacy hard-coded value)
     "cache_enabled": false,           // Memoize verdicts by property-expression hash
-    "engine": "subprocess",           // "subprocess" (default) | "worker" (persistent solver)
+    "engine": "subprocess",           // "subprocess" (default) | "worker" | "rtamt"
     "parallel_workers": 1             // Evaluate a generation's candidates over N workers (1 = serial)
   },
 
@@ -249,7 +243,7 @@ wall-clock fields in `report.json` for your requirement.
 | --- | --- | --- |
 | `trace_check_timeout_sec` | `3600` | Per-candidate Z3 trace-check timeout, in seconds. The default matches the previously hard-coded one-hour limit, so it changes nothing; lower it to fail slow/undecidable candidates faster. |
 | `cache_enabled` | `false` | When `true`, verdicts are memoized by `sha256` of the property-expression string in an in-memory dict backed by a SQLite file in the run directory, and consulted before any solver call. Verdict-preserving by construction (a cache hit returns the verdict the solver already produced). Hit/miss/distinct counters are written to `report.json` only when enabled. Helps workloads where formulas recur across generations. |
-| `engine` | `"subprocess"` | `"subprocess"` spawns a fresh Python+Z3 process per candidate (legacy path). `"worker"` keeps a long-lived solver process that runs the trace setup once and then serves push→check→pop requests, avoiding repeated setup cost. The worker is a verdict oracle equivalent to the subprocess engine. On a worker crash it is restarted once, with a per-candidate fallback to a subprocess; both counts are recorded in `report.json`. |
+| `engine` | `"subprocess"` | `"subprocess"` spawns a fresh Python+Z3 process per candidate. `"worker"` keeps a long-lived Z3 process. `"rtamt"` selects the optional RTAMT oracle for the supported AT1 and CCX templates and requires serial execution with search heuristics disabled. On Python 3.8–3.12, install it with `pip install -e '.[rtamt]'`; RTAMT 0.3.5's ANTLR dependency is not compatible with Python 3.13+. |
 | `parallel_workers` | `1` | Number of candidates from one generation to evaluate concurrently, each with its own temp file (the shared temp file is used only on the serial path). Results are applied in population-index order after the batch completes, so datasets and `report.json` are independent of worker count and scheduling. `1` keeps the serial path untouched. The cache (if enabled) is shared race-safely via SQLite WAL. |
 
 ### `ga.stopping` block
