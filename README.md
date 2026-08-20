@@ -22,11 +22,12 @@ The result is a **diagnostic decision tree** that relates parts of the requireme
 ## Research artifact
 
 The paper's data, archived runs, experiment configurations, and reproduction
-scripts are maintained in a separate replication repository. This repository
-contains only the Diagnosis tool, examples, and tests. The artifact records
-the original run commit as unavailable and separately pins its declared rerun
-snapshot; do not substitute the latest Diagnosis release when reproducing
-archived results.
+scripts are maintained in the public
+[`Diagnosis-replication-package`](https://github.com/rdinizcal/Diagnosis-replication-package)
+repository. This repository contains only the Diagnosis tool, examples, and
+tests. The artifact records the original run commit as unavailable and
+separately pins its declared rerun source base; do not substitute the latest
+Diagnosis release when reproducing archived results.
 
 ---
 
