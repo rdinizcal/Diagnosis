@@ -110,8 +110,6 @@ def run_j48(
         str(model_path),
     ]
 
-    print(" ".join(cmd))
-
     try:
         run_process = subprocess.run(
             cmd,
@@ -120,8 +118,8 @@ def run_j48(
             text=True,
             timeout=timeout,
         )
-        print(run_process.stdout)
-        print(run_process.stderr)
+        # Weka's model/evaluation output is written to the .out file below; it is
+        # intentionally not echoed to the terminal to keep run logs readable.
 
         out_path = out_dir_path / f"J48-data-{int(qty * 100)}.out"
         with out_path.open("w", encoding="utf-8") as f:

@@ -19,27 +19,27 @@
     "enable_logical_flip": false,
     "enable_quantifier_flip": false,
     "allowed_positions": [
-      27,
+      5,
       8,
-      13
+      27
     ],
     "allowed_changes": {
-      "27": {
+      "5": {
         "numeric": [
           0.0,
-          5000000.0
+          1500.0
         ]
       },
       "8": {
         "numeric": [
-          15000000.0,
-          45000000.0
+          1500.0,
+          4500.0
         ]
       },
-      "13": {
+      "27": {
         "numeric": [
           0.0,
-          15000000.0
+          5000000.0
         ]
       }
     }

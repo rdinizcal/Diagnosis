@@ -1,6 +1,7 @@
 from __future__ import annotations
 import hashlib
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -17,10 +18,15 @@ def sha256_file(path: str) -> Optional[str]:
     return h.hexdigest()
 
 
-def parse_j48_out(out_text: str) -> Dict[str, Any]:
+def parse_j48_out(out_text: str, *, include_stopping_metrics: bool = False) -> Dict[str, Any]:
     """
     Parse Weka J48 textual output (.out) to extract coarse tree statistics.
     This is heuristic but stable enough for sensitivity comparisons.
+
+    When ``include_stopping_metrics`` is True the result additionally carries a
+    normalized top-of-tree ``tree_hash`` plus weighted cross-validation
+    ``cv_precision``/``cv_recall``/``cv_f1`` used by adaptive stopping. These
+    extra keys are opt-in so the default report payload is unchanged.
     """
     lines = [ln.rstrip("\n") for ln in out_text.splitlines()]
     nonempty = [ln for ln in lines if ln.strip()]
@@ -62,12 +68,86 @@ def parse_j48_out(out_text: str) -> Dict[str, Any]:
     if root is None:
         depth = 0
 
-    return {
+    result: Dict[str, Any] = {
         "tree_depth": depth if nodes > 0 else None,
         "tree_nodes": nodes if nodes > 0 else None,
         "tree_leaves": leaves if leaves > 0 else None,
         "root_split": root,
     }
+
+    if include_stopping_metrics:
+        model_lines = _j48_model_lines(out_text)
+        top2 = "\n".join(
+            _normalize_tree_line(line)
+            for line in model_lines
+            if line.count("|") <= 2
+        )
+        result["tree_hash"] = (
+            hashlib.sha256(top2.encode("utf-8")).hexdigest() if top2 else None
+        )
+        result.update(_parse_weighted_cv_metrics(out_text))
+
+    return result
+
+
+def _j48_model_lines(out_text: str) -> list[str]:
+    lines: list[str] = []
+    in_tree = False
+    saw_dash = False
+    for line in out_text.splitlines():
+        stripped = line.strip()
+        if stripped == "J48 pruned tree":
+            in_tree = True
+            continue
+        if not in_tree:
+            continue
+        if stripped.startswith("-"):
+            saw_dash = True
+            continue
+        if stripped.startswith("Number of Leaves") or stripped.startswith("Size of the tree"):
+            break
+        if saw_dash and stripped:
+            lines.append(line.rstrip())
+    return lines
+
+
+def _normalize_tree_line(line: str) -> str:
+    line = re.sub(r"\s*\([0-9.]+(?:/[0-9.]+)?\)\s*$", "", line.strip())
+    line = re.sub(r"(?<![A-Za-z_])[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?(?![A-Za-z_])", "#", line)
+    return re.sub(r"\s+", " ", line)
+
+
+def _parse_weighted_cv_metrics(out_text: str) -> Dict[str, Any]:
+    marker = "=== Stratified cross-validation ==="
+    section = out_text[out_text.find(marker):] if marker in out_text else out_text
+    in_details = False
+    for line in section.splitlines():
+        if "=== Detailed Accuracy By Class ===" in line:
+            in_details = True
+            continue
+        if not in_details:
+            continue
+        stripped = line.strip()
+        if stripped.startswith("Weighted Avg."):
+            # Columns after the label are: TP FP Precision Recall F-Measure ...
+            # Weka prints '?' for undefined cells; keep positions so a '?' in
+            # one column does not shift the reading of the others.
+            cols = stripped[len("Weighted Avg."):].split()
+
+            def _col(idx: int) -> Optional[float]:
+                if idx >= len(cols):
+                    return None
+                try:
+                    return float(cols[idx])
+                except ValueError:
+                    return None
+
+            return {
+                "cv_precision": _col(2),
+                "cv_recall": _col(3),
+                "cv_f1": _col(4),
+            }
+    return {"cv_precision": None, "cv_recall": None, "cv_f1": None}
 
 def write_summary(output_dir: str, summary: Dict[str, Any]) -> str:
     out_dir = Path(output_dir)

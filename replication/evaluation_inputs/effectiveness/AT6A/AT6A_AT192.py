@@ -15036,13 +15036,13 @@ def AT6A():
 	interval_t1=And(0<=t1, t1<=(30000000))
 	
 	#["<", ["e_speed[ToInt(RealVal(0)+(t1-0.0)/10000.0)]", 3000]]
-	conditions_t1=e_speed[ToInt(RealVal(0)+(t1-0.0)/10000.0)]<3000
+	conditions_t1=e_speed[ToInt(RealVal(0)+(t1-0.0)/10000.0)]<3000.0
 
 	#["And", [["<=", [0,"t2"]], ["<=", ["t2", 4000000]]]]
 	interval_t2=And(0<=t2, t2<=(4000000))
 	
 	#["<", ["v_speed[ToInt(RealVal(0)+(t2-0.0)/10000.0)]", 35]]
-	conditions_t2=v_speed[ToInt(RealVal(0)+(t2-0.0)/10000.0)]<35
+	conditions_t2=v_speed[ToInt(RealVal(0)+(t2-0.0)/10000.0)]<35.0
 	
 
 	#["Implies", [interval_t1, conditions_t1]]
