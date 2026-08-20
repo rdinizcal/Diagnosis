@@ -22,12 +22,11 @@ The result is a **diagnostic decision tree** that relates parts of the requireme
 ## Research artifact
 
 The paper's data, archived runs, experiment configurations, and reproduction
-scripts live in the separate
-[`sbtd-replication-package`](https://github.com/rdinizcal/sbtd-replication-package)
-repository. This repository contains only the Diagnosis tool, examples, and
-tests. The artifact pins the exact historical Diagnosis snapshot it uses as a
-Git submodule; do not substitute the latest release when reproducing archived
-results.
+scripts are maintained in a separate replication repository. This repository
+contains only the Diagnosis tool, examples, and tests. The artifact records
+the original run commit as unavailable and separately pins its declared rerun
+snapshot; do not substitute the latest Diagnosis release when reproducing
+archived results.
 
 ---
 
