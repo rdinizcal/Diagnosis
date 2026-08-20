@@ -8,6 +8,7 @@ mapping, and hand-computed CCX verdicts derived directly from the trace.
 
 import copy
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -28,8 +29,9 @@ from diagnosis.engines.rtamt_engine import (
     V_UNDECIDED,
 )
 
-AT1_PATH = "replication/evaluation_inputs/effectiveness/AT1/AT1_AT001.py"
-CCX_PATH = "replication/evaluation_inputs/effectiveness/CCX/CCX_CC041.py"
+FIXTURES = Path(__file__).resolve().parent / "fixtures" / "effectiveness"
+AT1_PATH = str(FIXTURES / "AT1" / "AT1_AT001.py")
+CCX_PATH = str(FIXTURES / "CCX" / "CCX_CC041.py")
 
 
 def _set(formula, pos_value):
