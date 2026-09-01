@@ -118,6 +118,65 @@ class Exists(Formula):
         return f"∃ {vars_str}. {self.body}"
 
 
+# --- Past-time temporal operators (pt-LTL) -----------------------------------
+
+
+@dataclass(frozen=True)
+class Historically(Formula):
+    """
+    Historically (H): the body holds at every past instant, including now.
+    """
+    body: Formula
+
+    def __str__(self) -> str:
+        return f"H({self.body})"
+
+
+@dataclass(frozen=True)
+class Once(Formula):
+    """
+    Once (O): the body held at some past instant, including now.
+    """
+    body: Formula
+
+    def __str__(self) -> str:
+        return f"O({self.body})"
+
+
+@dataclass(frozen=True)
+class Yesterday(Formula):
+    """
+    Yesterday (Y): the body held at the previous instant; false at time zero.
+    """
+    body: Formula
+
+    def __str__(self) -> str:
+        return f"Y({self.body})"
+
+
+@dataclass(frozen=True)
+class WeakYesterday(Formula):
+    """
+    Weak yesterday (Z): like Yesterday, but true at time zero.
+    """
+    body: Formula
+
+    def __str__(self) -> str:
+        return f"Z({self.body})"
+
+
+@dataclass(frozen=True)
+class Since(Formula):
+    """
+    Since (S): 'right' held at some past instant and 'left' has held ever since.
+    """
+    left: Formula
+    right: Formula
+
+    def __str__(self) -> str:
+        return f"({self.left} S {self.right})"
+
+
 @dataclass(frozen=True)
 class ArithOp(Formula):
     """
